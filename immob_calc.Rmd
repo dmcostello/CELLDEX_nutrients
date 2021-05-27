@@ -1,0 +1,98 @@
+---
+title: "immobilization calculations"
+author: "Dave Costello"
+date: "5/24/2021"
+output: html_document
+---
+
+Function used to calculate phosphorus immobilization rate, time of immobilization, and P factor. See Costello et al. 202X Supplemental Information for details of calculations. Default values are provided for initial P concentration, initial punch mass, and initial punch C mass, but they likely only apply to the CELLDEX cotton strips deployed in 2015 and the sampling methods described in the manuscript.
+
+```{r function to calculate immobilization}
+Pimmob <- function(P.conc.ugg,C.mass,time=21,dd=NA,
+                        P.init.ugg = 64,C.mass.init=3.388,mass.init=7.24){
+  
+  #Set up results
+  Pfact = vector('double')
+  Pim =vector('double')
+  massmax = vector('double')
+  maxP = vector('double')
+  tmax = vector('integer')
+  Pim.dd = vector('double')
+  
+  for(i in 1:length(P.conc.ugg)){
+    
+    #First check if there is P data & mass data
+    if(is.na(P.conc.ugg[i])|is.na(C.mass[i]))
+      {Pfact[i] = NA
+      Pim[i] = NA
+      Pim.dd[i] = NA
+      maxP[i] = NA
+      tmax[i] = NA
+      massmax[i] = NA}
+    
+    #Check to confirm there was mass loss
+    else if(C.mass[i]>=C.mass.init)
+      {Pfact[i] = NA
+      Pim[i] = NA
+      Pim.dd[i] = NA
+      maxP[i] = NA
+      tmax[i] = NA
+      massmax[i] = NA}
+    
+      else{
+        #Calculate regression parameters of the mass loss vs. P concentration
+        #Calculations in Aber and Melillo (using C mass rather than mass loss %)
+        slope1 <- (C.mass[i]/C.mass.init-1)/(P.conc.ugg[i]-P.init.ugg)
+        inter1 <- 1-slope1*P.init.ugg
+        kC = log(C.mass[i]/C.mass.init)/time[i]
+          
+    #This tests whether intercept > 2 and slope is positive, which indicates that P is being immobilized
+        if(inter1<2&slope1<0){
+          massmax[i] <- inter1/2 #C mass remaining (%) at max P mass
+          maxP[i] <- inter1/(2*-slope1) #P concentration (ug/g) at max P mass
+          tmax[i] <- log(massmax[i])/kC #Time to reach max P
+          
+          #Pfact is the total mass of P (ng) immobilized per punch
+          Pfact[i] <- maxP[i]*(massmax[i]*mass.init)-(P.init.ugg*mass.init)
+    
+  #Pim_rate is the linear rate of P immobilization (ug P/g C/d) until mineralization happens
+  Pim[i] <- (maxP[i]-P.init.ugg)*(1/0.42)/tmax[i]
+        
+  #P immobilization rate can also be calculated per degree day
+  dd.d <- dd[i]/time[i]
+  Pim.dd[i] = (maxP[i]-P.init.ugg)*(1/0.42)/(tmax[i]*dd.d)
+        }
+        
+  #If mass loss occurred but P mass did not increase then immobilization = 0
+    else{Pfact[i] = 0
+    Pim[i] = 0
+    Pim.dd[i] = 0
+    maxP[i] = NA
+    tmax[i] = tmax[i]
+    massmax[i] = NA}
+}
+  }
+
+  return(list(
+    P.factor=Pfact,
+    maxP = maxP,
+    massatmax = massmax,
+    tmax=tmax,
+    Pim.rate = Pim,
+    Pim.rate.dd = Pim.dd
+    #slope1=slope1,
+    #inter1=inter1,
+    #decomp = kC
+    ))
+  
+}
+```
+
+```{r Examples}
+#EXAMPLE AAKO1 strip 4885 (P immobilized) 
+Pimmob(P.conc.ugg=273,C.mass=3.32,time=23)
+
+#EXAMPLE 2 AB3 strip 4503 (P concentration decline, no immobilization)
+Pimmob(P.conc.ugg=54,C.mass=3.29,time=35)
+```
+

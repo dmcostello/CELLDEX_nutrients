@@ -1,0 +1,459 @@
+---
+title: "Statistical analyses"
+author: "Dave Costello"
+date: "5/24/2021"
+output: html_document
+---
+
+```{r packages required, include=F}
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(MuMIn)
+```
+
+```{r import and merge data}
+#Individual cotton strip-level data
+stripCNP <- read.csv(file="stripCNP.csv")
+ripCNP <- subset(stripCNP,Type=='RIP')
+strCNP <- subset(stripCNP,Type=='STR')
+
+#Aggregate to site-level data
+siteCNP <- aggregate(stripCNP[,c(7:17,19:28)],by=list(stripCNP$part.str,stripCNP$biome_short,stripCNP$Type),mean,na.rm=T)
+colnames(siteCNP)[1:3] <- c("part.str","biome_short","Type")
+
+#Merge with decomp rate
+sitek <- read.csv("decomp_k.csv")
+siteCNPk <- merge(siteCNP,sitek,by=c("part.str","Type"),all.x=T)
+
+#Split Riparian and River
+CNPk_RIP <- subset(siteCNPk,Type=='RIP')
+CNPk_STR <- subset(siteCNPk,Type=='STR')
+
+#Merge River with water quality
+WQ <- read.csv("waterquality.csv")
+CNPk_STR_WQ <- merge(CNPk_STR,WQ,by="part.str",all.x=T)
+```
+
+```{r summary stats}
+#Function for geometric mean
+gm_mean = function(x, na.rm=TRUE, zero.propagate = FALSE){
+  if(any(x < 0, na.rm = TRUE)){
+    return(NaN)
+  }
+  if(zero.propagate){
+    if(any(x == 0, na.rm = TRUE)){
+      return(0)
+    }
+    exp(mean(log(x), na.rm = na.rm))
+  } else {
+    exp(mean(log(x[x > 0]), na.rm=na.rm))
+  }
+}
+
+#Geometric mean site-level immobilization rates
+gm_mean(CNPk_RIP$Pim)
+gm_mean(CNPk_STR$Pim)
+gm_mean(CNPk_RIP$Nim)
+gm_mean(CNPk_STR$Nim)
+
+gm_mean(CNPk_STR$Ptmax)
+gm_mean(CNPk_RIP$Ptmax)
+gm_mean(CNPk_STR$Ntmax)
+gm_mean(CNPk_RIP$Ntmax)
+
+gm_mean(CNPk_STR$NP_fac)
+gm_mean(CNPk_STR$NP_im)
+gm_mean(CNPk_RIP$NP_fac)
+gm_mean(CNPk_RIP$NP_im)
+```
+
+## Biome as a predictor of nutrient immobilization during decomposition
+
+```{r biome comparisons for river-incubated strips}
+#N immobilization rate
+sNim <- lmer(log(Nim*1000+1)~biome_short + (1|part.str),data=strCNP)
+anova(sNim)
+rand(sNim)
+r.squaredGLMM(sNim)
+
+(sNim.emm <- emmeans(sNim, "biome_short"))
+plot(sNim.emm,xlab="Stream N immobilization")
+
+#N factor
+sNf <- lmer(log(Nfactor+1)~biome_short + (1|part.str),data=strCNP)
+anova(sNf)
+rand(sNf)
+r.squaredGLMM(sNf)
+
+(sNf.emm <- emmeans(sNf, "biome_short"))
+plot(sNf.emm,xlab="Stream N factor")
+
+#P immobilization rate
+sPim <- lmer(log(Pim+1)~biome_short + (1|part.str),data=strCNP)
+anova(sPim)
+rand(sPim)
+r.squaredGLMM(sPim)
+
+(sPim.emm <- emmeans(sPim,"biome_short"))
+plot(sPim.emm,xlab="Stream P immobilization")
+
+#P factor
+sPf <- lmer(log(Pfactor/1000+1)~biome_short + (1|part.str),data=strCNP)
+anova(sPf)
+rand(sPf)
+r.squaredGLMM(sPf)
+
+(sPf.emm <- emmeans(sPf, "biome_short"))
+plot(sPf.emm,xlab="Stream P factor")
+
+#N:P rate
+sNPim <- lmer(log10(NP_im)~biome_short + (1|part.str),data=strCNP)
+anova(sNPim)
+rand(sNPim)
+r.squaredGLMM(sNPim)
+
+(sNPim.emm <- emmeans(sNPim, "biome_short"))
+plot(sNPim.emm,xlab="Immobilization N:P")
+
+#N:P factor
+sNPf <- lmer(log10(NP_fac)~biome_short + (1|part.str),data=strCNP)
+anova(sNPf)
+rand(sNPf)
+r.squaredGLMM(sNPf)
+
+(sNPf.emm <- emmeans(sNPf, "biome_short"))
+plot(sNPf.emm,xlab="N factor:P factor")
+```
+
+```{r biome comparisons for riparian-incubated strips}
+#N immobilization rate
+rNim <- lmer(log(Nim*1000+1)~biome_short + (1|part.str),data=ripCNP)
+anova(rNim)
+rand(rNim)
+r.squaredGLMM(rNim)
+
+(rNim.emm <- emmeans(rNim, "biome_short"))
+plot(rNim.emm,xlab="Rip N immobilization")
+
+#N factor
+rNf <- lmer(log(Nfactor+1)~biome_short + (1|part.str),data=ripCNP)
+anova(rNf)
+rand(rNf)
+r.squaredGLMM(rNf)
+
+(rNf.emm <- emmeans(rNf, "biome_short"))
+plot(rNf.emm,xlab="Rip N factor")
+
+#P immobilization rate
+rPim <- lmer(log(Pim+1)~biome_short + (1|part.str),data=ripCNP)
+anova(rPim)
+rand(rPim)
+r.squaredGLMM(rPim)
+
+(rPim.emm <- emmeans(rPim,"biome_short"))
+plot(rPim.emm,xlab="Riparian P immobilization")
+
+#P factor
+rPf <- lmer(log(Pfactor/1000+1)~biome_short + (1|part.str),data=ripCNP)
+anova(rPf)
+rand(rPf)
+r.squaredGLMM(rPf)
+
+(rPf.emm <- emmeans(rPf,"biome_short"))
+plot(rPf.emm)
+
+#N:P rate
+rNPim <- lmer(log10(NP_im)~biome_short + (1|part.str),data=ripCNP)
+anova(rNPim)
+rand(rNPim)
+r.squaredGLMM(rNPim)
+
+(rNPim.emm <- emmeans(rNPim, "biome_short"))
+plot(rNPim.emm,xlab="Immobilization N:P")
+
+#N:P factor
+rNPf <- lmer(log10(NP_fac)~biome_short + (1|part.str),data=ripCNP)
+anova(rNPf)
+rand(rNPf)
+r.squaredGLMM(rNPf)
+
+(rNPf.emm <- emmeans(rNPf, "biome_short"))
+plot(rNPf.emm,xlab="N factor:P factor")
+```
+
+
+## Relating immobilization and decomposition
+
+```{r relating immobilization and decomposition rate}
+#River N
+with(CNPk_STR,cor.test(log10(Nim*1000+1),log10(k)))
+
+#Riparian N
+with(CNPk_RIP,cor.test(log10(Nim*1000+1),log10(k)))
+
+#River P
+with(CNPk_STR,cor.test(log10(Pim+1),log10(k)))
+
+#Riparian P
+with(CNPk_RIP,cor.test(log10(Pim+1),log10(k)))
+```
+
+## Linking water quality to immobilization
+
+```{r geographic patterns in water quality}
+#Conductivity
+boxplot(cond~biome_short,data=CNPk_STR_WQ,log="y",las=2,xlab="")
+condb <- aov(log(cond)~biome_short,data=CNPk_STR_WQ)
+summary(condb)
+emmeans(condb,'biome_short')
+
+plot(cond~abs(latitude),data=CNPk_STR_WQ,log="y")
+condlat <- lm(log(cond)~abs(latitude),data=CNPk_STR_WQ)
+summary(condlat)
+
+#pH
+boxplot(pH~biome_short,data=CNPk_STR_WQ,las=2,xlab="")
+pHb <- aov(pH~biome_short,data=CNPk_STR_WQ)
+summary(pHb)
+emmeans(pHb,'biome_short')
+
+plot(pH~abs(latitude),data=CNPk_STR_WQ)
+pHlat <- lm(pH~abs(latitude),data=CNPk_STR_WQ)
+summary(pHlat)
+
+#Nitrate
+boxplot(NO3_ugL~biome_short,data=CNPk_STR_WQ,log="y",las=2,xlab="")
+NO3b <- aov(log(NO3_ugL)~biome_short,data=CNPk_STR_WQ)
+summary(NO3b)
+emmeans(NO3b,'biome_short')
+
+plot(NO3_ugL~abs(latitude),data=CNPk_STR_WQ,log="y")
+NO3lat <- lm(log(NO3_ugL)~abs(latitude),data=CNPk_STR_WQ)
+summary(NO3lat)
+
+#Ammonium
+boxplot(NH4_ugL+1~biome_short,data=CNPk_STR_WQ,log="y",las=2,xlab="")
+NH4b <- aov(log(NH4_ugL+1)~biome_short,data=CNPk_STR_WQ)
+summary(NH4b)
+emmeans(NH4b,'biome_short')
+
+plot(NH4_ugL+1~abs(latitude),data=CNPk_STR_WQ,log="y")
+NH4lat <- lm(log(NH4_ugL+1)~abs(latitude),data=CNPk_STR_WQ)
+summary(NH4lat)
+
+#Phosphate
+boxplot(PO4_ugL~biome_short,data=CNPk_STR_WQ,log="y",las=2,xlab="")
+PO4b <- aov(log(PO4_ugL)~biome_short,data=CNPk_STR_WQ)
+summary(PO4b)
+emmeans(PO4b,'biome_short')
+
+plot(PO4_ugL~abs(latitude),data=CNPk_STR_WQ,log="y")
+PO4lat <- lm(log10(PO4_ugL)~abs(latitude),data=CNPk_STR_WQ)
+summary(PO4lat)
+abline(PO4lat)
+
+#DIN
+boxplot(DIN~biome_short,data=CNPk_STR_WQ,log="y",las=2,xlab="")
+DINb <- aov(log(DIN)~biome_short,data=CNPk_STR_WQ)
+summary(DINb)
+emmeans(DINb,'biome_short')
+
+plot(DIN~abs(latitude),data=CNPk_STR_WQ,log="y")
+DINlat <- lm(log(DIN)~abs(latitude),data=CNPk_STR_WQ)
+summary(DINlat)
+
+#DIN:PO4
+boxplot(DNP~biome_short,data=CNPk_STR_WQ,log="y",las=2,xlab="")
+DNPb <- aov(log(DNP)~biome_short,data=CNPk_STR_WQ)
+summary(DNPb)
+emmeans(DNPb,'biome_short')
+
+plot(DNP~abs(latitude),data=CNPk_STR_WQ,log="y")
+DNPlat <- lm(log10(DNP)~abs(latitude),data=CNPk_STR_WQ)
+summary(DNPlat)
+abline(DNPlat)
+
+#DOC
+boxplot(DOC~biome_short,data=CNPk_STR_WQ,log="y",las=2,xlab="")
+Cb <- aov(DOC~biome_short,data=CNPk_STR_WQ)
+summary(Cb)
+emmeans(Cb,'biome_short')
+
+plot(DOC~abs(latitude),data=CNPk_STR_WQ,log="y")
+Clat <- lm(DOC~abs(latitude),data=CNPk_STR_WQ)
+summary(Clat)
+```
+
+```{r relate water quality to decomposition}
+#Conductivity
+plot(k~cond,data=CNPk_STR_WQ,log="xy")
+condk <- lm(log(k)~log(cond),data=CNPk_STR_WQ)
+summary(condk)
+
+#pH
+plot(k~pH,data=CNPk_STR_WQ,log="y")
+pHk <- lm(log(k)~pH,data=CNPk_STR_WQ)
+summary(pHk)
+
+#Nitrate
+plot(k~NO3_ugL,data=CNPk_STR_WQ,log="xy")
+NO3k <- lm(log(k)~log(NO3_ugL),data=CNPk_STR_WQ)
+summary(NO3k)
+
+#Ammonium
+plot(k~NH4_ugL+1,data=CNPk_STR_WQ,log="xy")
+NH4k <- lm(log(k)~log(NH4_ugL+1),data=CNPk_STR_WQ)
+summary(NH4k)
+
+#Phosphate
+plot(k~PO4_ugL,data=CNPk_STR_WQ,log="xy")
+PO4k <- lm(log10(k)~log10(PO4_ugL),data=CNPk_STR_WQ)
+summary(PO4k)
+abline(PO4k)
+
+#DIN
+plot(k~DIN,data=CNPk_STR_WQ,log="xy")
+DINk <- lm(log(k)~log(DIN),data=CNPk_STR_WQ)
+summary(DINk)
+
+#DIN:PO4
+plot(k~DNP,data=CNPk_STR_WQ,log="xy")
+DNPk <- lm(log(k)~log(DNP),data=CNPk_STR_WQ)
+summary(DNPk)
+
+#DOC
+plot(k~DOC,data=CNPk_STR_WQ,log="y")
+Ck <- lm(log(k)~DOC,data=CNPk_STR_WQ)
+summary(Ck)
+```
+
+```{r relate water quality to immobilization}
+#Nimm vs NH4
+plot(Nim+1~NH4_ugL,data=CNPk_STR_WQ,log="xy",las=1)
+NH4im <- lm(log(Nim+1)~log(NH4_ugL+1),data=CNPk_STR_WQ)
+summary(NH4im)
+
+#Nimm vs NO3
+plot(Nim+1~NO3_ugL,data=CNPk_STR_WQ,log="xy",las=1)
+NO3im <- lm(log10(Nim+1)~log10(NO3_ugL),data=CNPk_STR_WQ)
+summary(NO3im)
+
+#Nimm vs DIN
+plot(Nim+1~DIN,data=CNPk_STR_WQ,log="xy",las=1)
+DINim <- lm(log10(Nim+1)~log10(DIN),data=CNPk_STR_WQ)
+summary(DINim)
+
+#Pimm vs PO4
+plot(Pim+1~PO4_ugL,data=CNPk_STR_WQ,log="xy",las=1)
+PPim <- lm(log10(Pim+1)~log10(PO4_ugL),data=CNPk_STR_WQ)
+summary(PPim)
+abline(PPim)
+
+#N:Pimm vs DIN:PO4
+plot(NP_im~DNP,data=CNPk_STR_WQ,log="xy",las=1)
+NPim <- lm(NP_im~DNP,data=CNPk_STR_WQ)
+summary(NPim)
+
+#N:Pimm vs. NH4:PO4
+plot(NP_im~NHP,data=CNPk_STR_WQ,log="xy",las=1)
+NH4Pim <- lm(NP_im~NHP,data=CNPk_STR_WQ)
+summary(NH4Pim)
+
+#Quantiles for N:P immobilization and DIN:PO4
+quantile(CNPk_STR_WQ$DNP,na.rm=T)
+quantile(CNPk_STR_WQ$NP_im,na.rm=T)
+
+```
+
+## Temperature controls on immobilization
+
+```{r temp dependence of decomp}
+#Calculate relative temperature (site-scale)
+CNPk_STR$rel_temp <- 1/(8.62e-5*(CNPk_STR$mean_mean_daily_temp+273.15))-1/(8.62e-5*283.15)
+CNPk_RIP$rel_temp <- 1/(8.62e-5*(CNPk_RIP$mean_mean_daily_temp+273.15))-1/(8.62e-5*283.15)
+
+#River
+plot(log(k)~rel_temp,data=CNPk_STR,las=1,main="Stream")
+Arrk <- lm(log(k)~rel_temp,data=CNPk_STR)
+summary(Arrk)
+abline(Arrk)
+
+#Riparian
+plot(log(k)~rel_temp,data=CNPk_RIP,las=1,main="Riparian")
+ArrkR <- lm(log(k)~rel_temp,data=CNPk_RIP)
+summary(ArrkR)
+abline(ArrkR)
+```
+
+```{r temp dependence of immobilization}
+#Calculate relative temperature (strip-scale)
+strCNP$rel_temp <- 1/(8.62e-5*(strCNP$mean_mean_daily_temp+273.15))-1/(8.62e-5*283.15)
+ripCNP$rel_temp <- 1/(8.62e-5*(ripCNP$mean_mean_daily_temp+273.15))-1/(8.62e-5*283.15)
+
+#River N
+plot(log(Nim)~rel_temp,data=CNPk_STR,las=1,main="River N")
+
+ArrNS <- lmer(log(Nim)~rel_temp+ (1|part.str),data=strCNP[strCNP$Nim != 0,])
+summary(ArrNS)
+abline(fixef(ArrNS))
+
+#River P
+plot(log(Pim)~rel_temp,data=CNPk_STR,las=1,main="River P")
+
+ArrPS <- lmer(log(Pim)~rel_temp+ (1|part.str),data=strCNP[strCNP$Pim != 0,])
+summary(ArrPS)
+abline(fixef(ArrPS))
+
+#Riparian N
+plot(log(Nim)~rel_temp,data=CNPk_RIP,las=1,main="Riparian N")
+
+ArrNR <- lmer(log(Nim)~rel_temp+ (1|part.str),data=ripCNP[ripCNP$Nim != 0,])
+summary(ArrNR)
+abline(fixef(ArrNR))
+
+#Riparian P
+plot(log(Pim)~rel_temp,data=CNPk_RIP,las=1,main="Riparian P")
+
+ArrPR <- lmer(log(Pim)~rel_temp+ (1|part.str),data=ripCNP[ripCNP$Pim != 0,])
+summary(ArrPR)
+abline(fixef(ArrPR))
+
+```
+
+```{r deviations in temp dependence and immobilization}
+#Calculate deviance in temp dependence in Tiegs et al. 2019
+CNPk_STR$resid <- log(CNPk_STR$k)-(-4.31-(CNPk_STR$rel_temp*0.68))
+CNPk_RIP$resid <- log(CNPk_RIP$k)-(-5.03-(CNPk_RIP$rel_temp*0.40))
+
+#River N
+plot(resid~eval(Nim+1),data=CNPk_STR,log="x")
+residNs <- lm(resid~log10(Nim+1),data=CNPk_STR)
+summary(residNs)
+abline(residNs)
+
+#River P
+plot(resid~eval(Pim+1),data=CNPk_STR,log="x")
+residPs <- lm(resid~log10(Pim+1),data=CNPk_STR)
+summary(residPs)
+abline(residPs)
+
+#Riparian N
+plot(resid~eval(Nim+1),data=CNPk_RIP,log="x")
+residNr <- lm(resid~log10(Nim+1),data=CNPk_RIP)
+summary(residNr)
+abline(residNr)
+
+  #Exclude the zeros
+  residNr.no0 <- lm(resid~log(Nim),data=CNPk_RIP[CNPk_RIP$Nim != 0,])
+  summary(residNr.no0)
+  abline(residNr.no0)
+
+#Riparian P
+plot(resid~eval(Pim+1),data=CNPk_RIP,log="x")
+residPr <- lm(resid~log10(Pim+1),data=CNPk_RIP)
+summary(residPr)
+abline(residPr)
+
+```
+

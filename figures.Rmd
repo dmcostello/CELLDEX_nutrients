@@ -1,0 +1,350 @@
+---
+title: "figures"
+author: "Dave Costello"
+date: "5/24/2021"
+output: html_document
+---
+
+```{r internal functions for graphing,include=F}
+#Log axis function
+logaxis = function(minlog,maxlog,side,labels=T,scale=1){
+  pow <- seq(minlog,maxlog,by=1)
+  ticksat <- as.vector(sapply(pow, function(p) (1:10)*10^p))
+  ifelse(labels==T,axis(side, 10^pow,las=1,cex.axis=scale),axis(side,10^pow,las=1,labels=NA,cex.axis=scale))
+  axis(side, ticksat, labels=NA, tcl=-0.25, lwd=0, lwd.ticks=1)
+}
+
+
+#Log axis function with exponents
+logaxis2 = function(minlog,maxlog,side,labels=T,scale=1){
+  pow <- seq(minlog,maxlog,by=1)
+  ticksat <- as.vector(sapply(pow, function(p) (1:10)*10^p))
+  axis(side, 10^pow,las=1,labels=NA)
+  if(labels==T){for(i in 1:length(pow)){
+    mtext(side=side,at=10^(pow[i]),bquote(paste('10'^.(pow[i]))),line=1,las=1,cex=scale)
+  }}
+  axis(side, ticksat, labels=NA, tcl=-0.25, lwd=0, lwd.ticks=1)
+}
+```
+
+```{r packages required, include=F}
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(MuMIn)
+```
+
+```{r import and merge data}
+#Individual cotton strip-level data
+stripCNP <- read.csv(file="stripCNP.csv")
+ripCNP <- subset(stripCNP,Type=='RIP')
+strCNP <- subset(stripCNP,Type=='STR')
+
+#Aggregate to site-level data
+siteCNP <- aggregate(stripCNP[,c(7:17,19:28)],by=list(stripCNP$part.str,stripCNP$biome_short,stripCNP$Type),mean,na.rm=T)
+colnames(siteCNP)[1:3] <- c("part.str","biome_short","Type")
+
+#Merge with decomp rate
+sitek <- read.csv("decomp_k.csv")
+siteCNPk <- merge(siteCNP,sitek,by=c("part.str","Type"),all.x=T)
+
+#Split Riparian and River
+CNPk_RIP <- subset(siteCNPk,Type=='RIP')
+CNPk_STR <- subset(siteCNPk,Type=='STR')
+
+#Merge River with water quality
+WQ <- read.csv("waterquality.csv")
+CNPk_STR_WQ <- merge(CNPk_STR,WQ,by="part.str",all.x=T)
+```
+
+
+```{r colors,include=F}
+
+#Order based on riparian decomp rate slow --> fast
+slow2fast <- c("mont_grass","desert","tund","taiga","temp_conif","mediter","temp_broad","trop_grass","temp_grass","trop_dry","trop_wet")
+
+#Preferred order based on expected temperature warm to cool
+CNPk_RIP$biome_short <- factor(CNPk_RIP$biome_short,levels = slow2fast)
+CNPk_STR$biome_short <- factor(CNPk_STR$biome_short,levels = slow2fast)
+ripCNP$biome_short <- factor(ripCNP$biome_short,levels = slow2fast)
+strCNP$biome_short <- factor(strCNP$biome_short,levels = slow2fast)
+
+
+bname <- c("Mont. grass.","Desert","Tundra","Boreal","Temp. conif.","Mediterranean","Temp. broad","Trop. savanna","Temp. grass.","Trop. dry","Trop. wet")
+  
+bcol<-c("olivedrab", #mont_grass#
+        "khaki3", #desert#
+        "gray66", #tundra#
+        "lightsteelblue4", #taiga#
+        "firebrick4", #temp_conif#
+        "magenta3", #mediter#
+        "green4", #temp_broad#
+        "orange2", #trop_grass#
+        "lightgreen", #temp_grass#
+        "lightsalmon4", #trop_dry#
+        "mediumblue" #trop_wet#
+        )
+
+stripS_bcol <- c("olivedrab", #mont_grass#
+        "khaki3", #desert#
+        "gray66", #tundra#
+        "lightsteelblue4", #taiga#
+        "firebrick4", #temp_conif#
+        "magenta3", #mediter#
+        "green4", #temp_broad#
+        "orange2", #trop_grass#
+        "lightgreen", #temp_grass#
+        "lightsalmon4", #trop_dry#
+        "mediumblue" #trop_wet#
+        ) [as.factor(strCNP$biome_short)]
+
+stripR_bcol <- c("olivedrab", #mont_grass#
+        "khaki3", #desert#
+        "gray66", #tundra#
+        "lightsteelblue4", #taiga#
+        "firebrick4", #temp_conif#
+        "magenta3", #mediter#
+        "green4", #temp_broad#
+        "orange2", #trop_grass#
+        "lightgreen", #temp_grass#
+        "lightsalmon4", #trop_dry#
+        "mediumblue" #trop_wet#
+        ) [as.factor(ripCNP$biome_short)]
+
+siteS_bcol <- c("olivedrab", #mont_grass#
+        "khaki3", #desert#
+        "gray66", #tundra#
+        "lightsteelblue4", #taiga#
+        "firebrick4", #temp_conif#
+        "magenta3", #mediter#
+        "green4", #temp_broad#
+        "orange2", #trop_grass#
+        "lightgreen", #temp_grass#
+        "lightsalmon4", #trop_dry#
+        "mediumblue" #trop_wet#
+        ) [as.factor(CNPk_STR$biome_short)]
+
+siteR_bcol <- c("olivedrab", #mont_grass#
+        "khaki3", #desert#
+        "gray66", #tundra#
+        "lightsteelblue4", #taiga#
+        "firebrick4", #temp_conif#
+        "magenta3", #mediter#
+        "green4", #temp_broad#
+        "orange2", #trop_grass#
+        "lightgreen", #temp_grass#
+        "lightsalmon4", #trop_dry#
+        "mediumblue" #trop_wet#
+        ) [as.factor(CNPk_RIP$biome_short)]
+
+Nsmax <- max(CNPk_STR$Nim,na.rm=T)+1
+Nrmax <- max(CNPk_RIP$Nim,na.rm=T)+1
+Psmax <- max(CNPk_STR$Pim,na.rm=T)+1
+Prmax <- max(CNPk_RIP$Pim,na.rm=T)+1
+```
+
+
+# Figure 1 - Immobilization rates and ratios in biomes
+
+```{r}
+sNim <- lmer(log(Nim+1)~biome_short + (1|part.str),data=strCNP)
+sNim.emm <- emmeans(sNim, "biome_short")
+Nimres <- as.data.frame(sNim.emm)
+N0 <- summary(CNPk_STR[CNPk_STR$Nim%in%0,'biome_short'])
+
+sPim <- lmer(log(Pim+1)~biome_short + (1|part.str),data=strCNP)
+sPim.emm <- emmeans(sPim,"biome_short")
+Pimres <- as.data.frame(sPim.emm)
+
+sNPim <- lmer(log10(NP_im)~biome_short + (1|part.str),data=strCNP)
+sNPim.emm <- emmeans(sNPim, "biome_short")
+NPimres <- as.data.frame(sNPim.emm)
+NPimres[NPimres$biome_short=="trop_dry",c(2,5:6)] <- NA
+
+rNim <- lmer(log(Nim+1)~biome_short + (1|part.str),data=ripCNP)
+rNim.emm <- emmeans(rNim, "biome_short")
+Nimrer <- as.data.frame(rNim.emm)
+Nimrer[Nimrer$biome_short=="trop_dry",c(2,5:6)] <- NA
+N0r <- summary(CNPk_RIP[CNPk_RIP$Nim%in%0,'biome_short'])
+
+rPim <- lmer(log(Pim+1)~biome_short + (1|part.str),data=ripCNP)
+rPim.emm <- emmeans(rPim,"biome_short")
+Pimrer <- as.data.frame(rPim.emm)
+P0r <- summary(CNPk_RIP[CNPk_RIP$Pim%in%0,'biome_short'])
+
+rNPim <- lmer(log10(NP_im)~biome_short + (1|part.str),data=ripCNP)
+rNPim.emm <- emmeans(rNPim, "biome_short")
+NPimrer <- as.data.frame(rNPim.emm)
+
+par(mfcol=c(3,2),omi=c(0.6,0.5,0,0),mar=c(0,2,2,0),pty="m")
+
+boxplot(exp(emmean)~biome_short,las=2,xlab="",data=Nimres,ylim=c(0.5,2000),ylab="",log="y",yaxt="n",xaxt="n",main="RIVER")
+logaxis(-1,-0.1,2)
+logaxis(0,3,2)
+mtext(expression("N immmobilization (N"[IMM]*") +1"),side=2,line=4,cex=0.7)
+mtext("(µg N/g C/d)",side=2,line=3,cex=0.7)
+with(Nimres,arrows(seq(1,11),exp(lower.CL),y1 = exp(upper.CL),length=0.05,angle = 90,code = 3,lwd=2))
+points(Nim+1~as.numeric(as.factor(biome_short)),data=CNPk_STR,col=siteS_bcol,cex=1.2,lwd=1.2)
+text(seq(0.7,10.7),1,labels=N0,cex=0.7)
+text(.25,2000,"A",cex=1.6,adj=c(0,1))
+
+par(mar=c(1,2,1,0))
+boxplot(exp(emmean)~biome_short,las=2,xlab="",data=Pimres,ylim=c(1,1000),ylab="",log="y",yaxt="n",xaxt="n")
+logaxis(0,3,2)
+mtext(expression("P immmobilization (P"[IMM]*") +1"),side=2,line=4,cex=0.7)
+mtext("(µg P/g C/d)",side=2,line=3,cex=0.7)
+with(Pimres,arrows(seq(1,11),exp(lower.CL),y1 = exp(upper.CL),length=0.05,angle = 90,code = 3,lwd=2))
+points(Pim+1~as.numeric(as.factor(biome_short)),data=CNPk_STR,col=siteS_bcol,cex=1.2,lwd=1.2)
+text(.25,1000,"B",cex=1.6,adj=c(0,1))
+
+
+par(mar=c(2,2,0,0))
+boxplot(10^(emmean)~biome_short,las=2,xlab="",data=NPimres,ylim=c(1,200),ylab="",log="y",yaxt="n",xaxt="n",cex.lab=1.2)
+axis(1,at=seq(1:11),labels=NA)
+mtext(bname,side = 1,at=seq(1,11),col=bcol,las=2,cex=0.6,line=1)
+mtext(expression("N"[IMM]*":P"[IMM]*""),side=2,line=2.5,cex=0.7)
+logaxis(0,3,2)
+with(NPimres,arrows(seq(1,11),10^(lower.CL),y1 = 10^(upper.CL),length=0.05,angle = 90,code = 3,lwd=2))
+points(NP_im~as.numeric(as.factor(biome_short)),data=CNPk_STR,col=siteS_bcol,cex=1.2,lwd=1.2)
+text(.25,200,"C",cex=1.6,adj=c(0,1))
+
+par(mar=c(0,1.5,2,0.5))
+boxplot(exp(emmean)~biome_short,las=2,xlab="",data=Nimrer,ylim=c(0.5,2000),ylab="",log="y",yaxt="n",xaxt="n",main="RIPARIAN")
+logaxis(-1,-0.1,2,labels=F)
+logaxis(0,3,2,labels=F)
+with(Nimrer,arrows(seq(1,11),exp(lower.CL),y1 = exp(upper.CL),length=0.05,angle = 90,code = 3,lwd=2))
+points(Nim*1~as.numeric(as.factor(biome_short)),data=CNPk_RIP,col=siteR_bcol,cex=1.2,lwd=1.2,pch=2)
+text(seq(0.65,10.65),1,labels=N0r,cex=0.7)
+text(.25,2000,"D",cex=1.6,adj=c(0,1))
+
+par(mar=c(1,1.5,1,0.5))
+boxplot(exp(emmean)~biome_short,las=2,xlab="",data=Pimrer,ylim=c(1,1000),ylab="",log="y",yaxt="n",xaxt="n")
+logaxis(0,3,2,labels=F)
+with(Pimrer,arrows(seq(1,11),exp(lower.CL),y1 = exp(upper.CL),length=0.05,angle = 90,code = 3,lwd=2))
+points(Pim+1~as.numeric(as.factor(biome_short)),data=CNPk_RIP,col=siteR_bcol,cex=1.2,lwd=1.2,pch=2)
+text(c(0.65,4.65),1,labels=1,cex=0.7)
+text(.25,1000,"E",cex=1.6,adj=c(0,1))
+
+par(mar=c(2,1.5,0,0.5))
+boxplot(10^(emmean)~biome_short,las=2,xlab="",data=NPimrer,ylim=c(1,200),ylab="",log="y",yaxt="n",xaxt="n",cex.lab=1.2,at=c(seq(1,9),11))
+axis(1,at=seq(1:11),labels=NA)
+mtext(bname,side = 1,at=seq(1,11),col=bcol,las=2,cex=0.6,line=1)
+logaxis(0,3,2,labels=F)
+with(NPimrer,arrows(c(seq(1,9),11),10^(lower.CL),y1 = 10^(upper.CL),length=0.05,angle = 90,code = 3,lwd=2))
+points(NP_im~as.numeric(as.factor(biome_short)),data=CNPk_RIP,col=siteR_bcol,cex=1.2,lwd=1.2,pch=2)
+text(.25,200,"F",cex=1.6,adj=c(0,1))
+```
+
+# Figure 2 - Decomposition rate and immobilization rate
+
+```{r}
+par(mfrow=c(2,2),omi=c(0,0.33,0,1),mar=c(0,4.5,5,0),pty="s")
+
+plot((Nim+1)~k,data=CNPk_STR,yaxt="n",log="xy",xlim=c(0.001,0.2),xlab="",col=siteS_bcol,ylab=expression("N"[IMM]*" +1 (µg N/g C/d)"),ylim=c(1,2000),xaxt="n",lwd=1.5,pch=16)
+logaxis2(-3,-1,1,labels=F)
+logaxis(0,3,2)
+legend(.04,7,legend=c("p < 0.001","r  = 0.70"),bty="n",cex=0.8)
+text(.001,2000,"A",cex=1.6,adj=c(0,1))
+mtext("River",3,at=0.014,line=0.5,cex=1.2)
+
+par(mar=c(0,2,5,2.5),pty="s")
+plot((Nim+1)~k,data=CNPk_RIP,yaxt="n",log="xy",ylim=c(1,2000),ylab="",col=siteS_bcol,xlab="",xlim=c(0.001,0.2),xaxt="n",lwd=1.5,pch=2)
+logaxis2(-3,-1,1,labels=F)
+logaxis(0,3,2,labels=F)
+legend(.04,7,legend=c("p = 0.005","r  = 0.28"),bty="n",cex=0.8)
+text(.001,2000,"B",cex=1.6,adj=c(0,1))
+mtext("Riparian",3,at=0.014,line=0.5,cex=1.2)
+
+legend(.4,3,legend=bname,text.col=bcol,pt.lwd=1.5,fill=bcol,cex=0.8,xpd=NA)
+
+par(mar=c(5,4.5,0,0),pty="s")
+plot(eval(Pim+1)~k,data=CNPk_STR,yaxt="n",log="xy",xlim=c(0.001,0.2),ylab=expression("P"[IMM]*" +1 (µg P/g C/d)"),col=siteS_bcol,xlab="Decomp. rate (1/d)", ylim=c(1,200),xaxt="n",lwd=1.5,pch=16)
+logaxis2(-3,-1,1)
+logaxis(0,2,2)
+legend("bottomright",legend=c("p < 0.001","r  = 0.70"),bty="n",cex=0.8)
+text(.001,200,"C",cex=1.6,adj=c(0,1))
+
+par(mar=c(5,2,0,2.5),pty="s")
+plot(eval(Pim+1)~k,data=CNPk_RIP,yaxt="n",log="xy",xlim=c(0.001,0.2),ylab="",col=siteS_bcol,xlab="Decomp. rate (1/d)",ylim=c(1,200),xaxt="n",lwd=1.5,pch=2)
+logaxis2(-3,-1,1)
+logaxis(0,2,2,labels=F)
+legend("bottomright",legend=c("p = 0.003","r  = 0.29"),bty="n",cex=0.8)
+text(.001,200,"D",cex=1.6,adj=c(0,1))
+```
+
+## Figure 3 - Immobilization rate and streamwater nutrients
+
+```{r}
+par(mfrow=c(3,1),omi=c(0.1,0,0,0),mar=c(3,3,1,1),pty="s")
+
+plot(Nim*1000+1~DIN,data=CNPsWQ,log="xy",xlab="",xlim=c(1,3000),xaxt="n", ylim=c(1,2000),yaxt="n",ylab=expression("N"[IMM]*"+1 (µg N/g C/d)"),col=siteS_bcol,pch=16)
+logaxis(0,3,1)
+logaxis(0,3,2)
+mtext("DIN (µg/L)",line=2.3,side=1,cex=0.75)
+text(4000,2,"p = 0.46",pos=2)
+text(1,2000,"A",cex=1.6,adj=c(0,1))
+
+par(mar=c(3,3,1,1))
+plot(Pim+1~PO4_ugL,data=CNPsWQ,log="xy",xlab="", ylab=expression("P"[IMM]*"+1 (µg P/g C/d)"),xlim=c(0.1,1000),xaxt="n",ylim=c(1,1000),yaxt="n",col=siteS_bcol,pch=16)
+logaxis(0,3,2)
+logaxis(0,3,1)
+logaxis(-1,-0.1,1)
+mtext(expression(paste("PO"[4]*""^"3-"*" (µg/L)")),side=1,line=2.3,cex=0.75)
+PPim <- lm(log10(Pim+1)~log10(PO4_ugL),data=CNPsWQ)
+#summary(PPim)
+text(0.1,1000,"B",cex=1.6,adj=c(0,1))
+text(c(1300,1300),c(1.8,1.1),c("p < 0.001",expression("r"^2*" = 0.26")),pos=2)
+clip(x1=min(CNPsWQ$PO4_ugL,na.rm=T),x2=max(CNPsWQ$PO4_ugL,na.rm=T),y1=1,y2=1000)
+abline(PPim)
+
+par(mar=c(3,3,1,1))
+plot(NP_im~DNP,data=CNPsWQ,log="xy",col=siteS_bcol,pch=16,ylim=c(1,100),xlim=c(1,10000),yaxt="n",xaxt="n",xlab="",ylab=expression("N"[IMM]*":P"[IMM]*""))
+logaxis(0,2,2)
+logaxis2(0,4,1,scale=0.7)
+mtext(expression(paste("DIN:PO"[4]*""^"3-"*" (µg/L)")),side=1,line=2.3,cex=0.75)
+NPim <- lm(eval(Nim_trans_no0/Pim_trans_no0)~DNP,data=CNPsWQ)
+#summary(NPim)
+text(1,100,"C",cex=1.6,adj=c(0,1))
+text(10000,1.2,"p = 0.99",pos=2)
+```
+
+## Figure 4 - Temperature dependence of immobilization
+```{r}
+par(mfrow=c(2,1),omi=c(0,0,0,0),mar=c(1,4.5,4,0),pty="s")
+plot(log(Nim_trans_no0)~rel_temp,data=CNPk_str,col=siteS_bcol,las=1,ylab=expression("ln N" [IMM]*""),ylim=c(1,8),pch=16,xaxt="n",xlim=c(-3,2))
+axis(1,labels=F)
+points(log(Nim_trans_no0)~rel_temp,data=CNPk_rip,col=siteR_bcol,pch=2)
+
+text(1.8,8,"A",cex=1.6,pos=1)
+legend("topleft",c("Riv. = -0.01","Rip. = -0.52"),bty="n",title = "slopes",cex=0.8)
+
+ArrNS <- lmer(log(Nim_trans_no0)~rel_temp+ (1|part.str),data=strCNP)
+#summary(ArrNS)
+clip(x1=min(strCNP$rel_temp,na.rm=T),x2=max(strCNP$rel_temp,na.rm=T),y1=,1,y2=10)
+abline(fixef(ArrNS))
+ArrNSr <- lmer(log(Nim_trans_no0)~rel_temp+ (1|part.str),data=ripCNP)
+#summary(ArrNSr)
+clip(x1=min(ripCNP$rel_temp,na.rm=T),x2=max(ripCNP$rel_temp,na.rm=T),y1=,1,y2=10)
+abline(fixef(ArrNSr),lty=2)
+
+
+par(mar=c(5,4.5,0,0),pty="s")
+plot(log(Pim_trans_no0)~rel_temp,data=CNPk_str,col=siteS_bcol,las=1,ylab=expression("ln P" [IMM]*""),ylim=c(-2.2,5),pch=16,xlab=expression("Inv. rel. temp. (1/k"[B]*"T-1/k"[B]*"T"[0]*")"),xlim=c(-3,2))
+points(log(Pim_trans_no0)~rel_temp,data=CNPk_rip,col=siteR_bcol,pch=2)
+
+
+legend("topleft",c("Riv. = -0.12","Rip. = -0.49"),bty="n",title = "slopes",cex=0.8)
+legend("bottomleft",legend=c("River","Riparian"),pch=c(16,2),lty=c(1,2),cex=0.8)
+text(1.8,5,"B",cex=1.6,pos=1)
+
+ArrPS <- lmer(log(Pim_trans_no0)~rel_temp+(1|part.str),data=strCNP)
+#summary(ArrPS)
+clip(x1=min(strCNP$rel_temp,na.rm=T),x2=max(strCNP$rel_temp,na.rm=T),y1=,-3,y2=10)
+abline(fixef(ArrPS))
+ArrPSr <- lmer(log(Pim_trans_no0)~rel_temp+(1|part.str),data=ripCNP)
+#summary(ArrPSr)
+clip(x1=min(ripCNP$rel_temp,na.rm=T),x2=max(ripCNP$rel_temp,na.rm=T),y1=,-3,y2=10)
+abline(fixef(ArrPSr),lty=2)
+
+```
+
