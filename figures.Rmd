@@ -311,41 +311,182 @@ text(10000,1.2,"p = 0.99",pos=2)
 
 ## Figure 4 - Temperature dependence of immobilization
 ```{r}
+#Calculate relative temperature (site-scale)
+CNPk_STR$rel_temp <- 1/(8.62e-5*(CNPk_STR$mean_mean_daily_temp+273.15))-1/(8.62e-5*283.15)
+CNPk_RIP$rel_temp <- 1/(8.62e-5*(CNPk_RIP$mean_mean_daily_temp+273.15))-1/(8.62e-5*283.15)
+
+#Nitrogen
 par(mfrow=c(2,1),omi=c(0,0,0,0),mar=c(1,4.5,4,0),pty="s")
-plot(log(Nim_trans_no0)~rel_temp,data=CNPk_str,col=siteS_bcol,las=1,ylab=expression("ln N" [IMM]*""),ylim=c(1,8),pch=16,xaxt="n",xlim=c(-3,2))
+plot(log(Nim)~rel_temp,data=CNPk_STR,col=siteS_bcol,las=1,ylab=expression("ln N" [IMM]*""),ylim=c(0,8),pch=16,xaxt="n",xlim=c(-3,2))
 axis(1,labels=F)
-points(log(Nim_trans_no0)~rel_temp,data=CNPk_rip,col=siteR_bcol,pch=2)
+points(log(Nim)~rel_temp,data=CNPk_RIP,col=siteR_bcol,pch=2)
 
 text(1.8,8,"A",cex=1.6,pos=1)
 legend("topleft",c("Riv. = -0.01","Rip. = -0.52"),bty="n",title = "slopes",cex=0.8)
 
-ArrNS <- lmer(log(Nim_trans_no0)~rel_temp+ (1|part.str),data=strCNP)
-#summary(ArrNS)
-clip(x1=min(strCNP$rel_temp,na.rm=T),x2=max(strCNP$rel_temp,na.rm=T),y1=,1,y2=10)
+ArrNS <- lmer(log(Nim)~rel_temp+ (1|part.str),data=strCNP[strCNP$Nim != 0,])
+clip(x1=min(strCNP$rel_temp,na.rm=T),x2=max(strCNP$rel_temp,na.rm=T),y1=,0,y2=8)
 abline(fixef(ArrNS))
-ArrNSr <- lmer(log(Nim_trans_no0)~rel_temp+ (1|part.str),data=ripCNP)
-#summary(ArrNSr)
-clip(x1=min(ripCNP$rel_temp,na.rm=T),x2=max(ripCNP$rel_temp,na.rm=T),y1=,1,y2=10)
-abline(fixef(ArrNSr),lty=2)
+ArrNR <- lmer(log(Nim)~rel_temp+ (1|part.str),data=ripCNP[ripCNP$Nim != 0,])
+clip(x1=min(ripCNP$rel_temp,na.rm=T),x2=max(ripCNP$rel_temp,na.rm=T),y1=,0,y2=8)
+abline(fixef(ArrNR),lty=2)
 
-
+#Phosphorus
 par(mar=c(5,4.5,0,0),pty="s")
-plot(log(Pim_trans_no0)~rel_temp,data=CNPk_str,col=siteS_bcol,las=1,ylab=expression("ln P" [IMM]*""),ylim=c(-2.2,5),pch=16,xlab=expression("Inv. rel. temp. (1/k"[B]*"T-1/k"[B]*"T"[0]*")"),xlim=c(-3,2))
-points(log(Pim_trans_no0)~rel_temp,data=CNPk_rip,col=siteR_bcol,pch=2)
+plot(log(Pim)~rel_temp,data=CNPk_STR,col=siteS_bcol,las=1,ylab=expression("ln P" [IMM]*""),ylim=c(-2.5,5),pch=16,xlab=expression("Inv. rel. temp. (1/k"[B]*"T-1/k"[B]*"T"[0]*")"),xlim=c(-3,2))
+points(log(Pim)~rel_temp,data=CNPk_RIP,col=siteR_bcol,pch=2)
 
 
 legend("topleft",c("Riv. = -0.12","Rip. = -0.49"),bty="n",title = "slopes",cex=0.8)
 legend("bottomleft",legend=c("River","Riparian"),pch=c(16,2),lty=c(1,2),cex=0.8)
 text(1.8,5,"B",cex=1.6,pos=1)
 
-ArrPS <- lmer(log(Pim_trans_no0)~rel_temp+(1|part.str),data=strCNP)
-#summary(ArrPS)
-clip(x1=min(strCNP$rel_temp,na.rm=T),x2=max(strCNP$rel_temp,na.rm=T),y1=,-3,y2=10)
+ArrPS <- lmer(log(Pim)~rel_temp+ (1|part.str),data=strCNP[strCNP$Pim != 0,])
+clip(x1=min(strCNP$rel_temp,na.rm=T),x2=max(strCNP$rel_temp,na.rm=T),y1=,-3,y2=5)
 abline(fixef(ArrPS))
-ArrPSr <- lmer(log(Pim_trans_no0)~rel_temp+(1|part.str),data=ripCNP)
-#summary(ArrPSr)
-clip(x1=min(ripCNP$rel_temp,na.rm=T),x2=max(ripCNP$rel_temp,na.rm=T),y1=,-3,y2=10)
-abline(fixef(ArrPSr),lty=2)
+ArrPR <- lmer(log(Pim)~rel_temp+ (1|part.str),data=ripCNP[ripCNP$Pim != 0,])
+clip(x1=min(ripCNP$rel_temp,na.rm=T),x2=max(ripCNP$rel_temp,na.rm=T),y1=,-3,y2=5)
+abline(fixef(ArrPR),lty=2)
+
+```
+
+## Figure 5 - Deviations in temperature dependence of decomp and immobilization
+
+```{r}
+#Calculate deviance in temp dependence in Tiegs et al. 2019
+CNPk_STR$resid <- log(CNPk_STR$k)-(-4.31-(CNPk_STR$rel_temp*0.68))
+CNPk_RIP$resid <- log(CNPk_RIP$k)-(-5.03-(CNPk_RIP$rel_temp*0.40))
+
+
+#Nitrogen
+
+par(mfrow=c(1,2),omi=c(0,0,0,0),mar=c(3,4,1,0),pty="s")
+plot(resid~eval(Nim+1),data=CNPk_STR,log="x",ylim=c(-3,3),xlim=c(1,2000),xaxt="n",xlab=expression("N"[IMM]*" +1 (µg N/g C/d)"),ylab="Deviation in ln(k)",col=siteS_bcol,las=1,pch=16)
+points(resid~eval(Nim+1),data=CNPk_RIP,col=siteR_bcol,pch=2,cex=0.8)
+logaxis(0,3,1)
+
+legend("bottomright",c(expression("Riv. p < 0.001, r"^2*" = 0.53"),expression("Rip. p = 0.03,   r"^2*" = 0.07")),cex=0.6,pch=c(16,2),lty=c(1,2))
+text(1.8,3,"A",cex=1.6,pos=1)
+
+residNs <- lm(resid~log10(Nim+1),data=CNPk_STR)
+residNr <- lm(resid~log(Nim+1),data=CNPk_RIP)
+clip(x1=1,x2=Nsmax,y1=-4,y2=4)
+abline(residNs)
+clip(x1=1,x2=Nrmax,y1=-4,y2=4)
+abline(residNr,lty=2)
+
+par(mar=c(3,2,1,2))
+
+plot(resid~eval(Pim+1),data=CNPk_STR,log="x",col=siteS_bcol,ylim=c(-3,3),xlim=c(1,1000),xaxt="n",xlab=expression("P"[IMM]*"+1 (µg P/g C/d)"),ylab="",yaxt="n",pch=16)
+points(resid~eval(Pim+1),data=CNPk_RIP,col=siteR_bcol,pch=2,cex=0.8)
+logaxis(0,3,1)
+axis(2,labels=NA)
+
+legend("bottomright",c(expression("Riv. p < 0.001, r"^2*" = 0.57"),expression("Rip. p = 0.60,   r"^2*" < 0.01")),cex=0.6,pch=c(16,2),lty=c(1,2))
+text(1.8,3,"B",cex=1.6,pos=1)
+
+residPs <- lm(resid~log10(Pim+1),data=CNPk_STR)
+clip(x1=1,x2=Psmax,y1=-4,y2=4)
+abline(residPs)
+residPr <- lm(resid~log10(Pim+1),data=CNPk_RIP)
+clip(x1=1,x2=Prmax,y1=-4,y2=4)
+abline(residPr,lty=2)
+```
+
+## Figure 6 - Ecosystem-scale comparisons
+
+```{r}
+eco <- read.csv(file="immob_eco.csv")
+
+eco$ecocol<-c(
+        "khaki3", #desert#
+        "magenta3", #mediter#
+        "olivedrab", #mont_grass#
+        "lightsteelblue4", #taiga#
+        "green4", #temp_broad#
+        "firebrick4", #temp_conif#
+        "lightgreen", #temp_grass#
+        "lightsalmon4", #trop_dry#
+        "orange2", #trop_grass#
+        "mediumblue", #trop_wet#
+        "gray66" #tundra#
+        )[as.factor(eco$Biome)]
+
+## NITROGEN ## 
+#Annual flux panel
+layout(matrix(c(1,2,3,4),2,2),heights=c(1,1.75,1,1.75))
+par(mar=c(0,7,4,1))
+
+with(eco[eco$Study=="boyero",],plot(rep(3,11)~N_annual,col=ecocol,cex=2,lwd=2,xlim=c(0,10),ylim=c(0,4),yaxt="n",xaxt="n",ylab=""))
+with(eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",],points(rep(1,11)~N_annual,col=ecocol,cex=2,lwd=2))
+axis(3)
+mtext(expression("Annual N flux (g N/m"^2*")"),3,line=2,cex=0.8)
+mtext(side=2,c("Immobilization","Litter input"),at=c(1,3),las=1,line=1,cex=0.8)
+text(-3,5,"A",xpd=T,cex=2.5)
+
+  #Draw segments for easier comparison
+leafsub <- rbind(eco[eco$Study=="boyero",],eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",])
+leafsub <- leafsub[complete.cases(leafsub[,'N_annual']),]
+leafsub$Biome <- factor(leafsub$Biome)
+blevel <- levels(leafsub$Biome)
+for(i in 1:length(blevel)){with(leafsub[leafsub$Biome==blevel[i],],points(c(3,1)~N_annual,col=ecocol,type="l"))}
+
+#Instantaneous flux panel
+par(mar=c(4,7,0,1))
+with(eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",],plot(rep(1,11)~N_instant,ylim=c(0,8),xlim=c(.1,1000),log="x",col=ecocol,yaxt="n",ylab="",cex=2,lwd=2,xlab=expression("Instantaneous N flux (mg N/m"^2*"/d)"),xaxt="n"))
+logaxis(0,3,1)
+logaxis(-1,-.1,1)
+
+#Convert values from Ensign and Doyle 2006 from ug/m2/min to mg/m2/d
+NO3ensign <- c(0,5.2,14.5,66.3,1000)*1440/1000
+NH4ensign <- c(0,2.2,5.1,10.4,1000)*1440/1000
+
+#Convert Marcarelli values from ug/m2/h to mg/m2/d
+Nfix <- c(0,4,9,410,1000)*24/1000
+
+NO3bx=list(stats=data.matrix(NO3ensign),n=1)
+bxp(NO3bx,add=T,horizontal=T,at=3,xaxt="n",whisklty=0,staplelty=0)
+
+NH4bx=list(stats=data.matrix(NH4ensign),n=1)
+bxp(NH4bx,add=T,horizontal=T,at=5,xaxt="n",whisklty=0,staplelty=0)
+
+Nfixbx=list(stats=data.matrix(Nfix),n=1)
+bxp(Nfixbx,add=T,horizontal=T,at=7,xaxt="n",whisklty=0,staplelty=0)
+
+mtext(side=2,c("Immobilization",expression("NO"[3]* " uptake"),expression("NH"[4]* " uptake"),"N fixation"),at=c(1,3,5,7),las=1,line=1,cex=0.8)
+
+legend(3000,8.3,legend=bname,text.col=bcol,col=bcol,pt.lwd=1.5,cex=0.8,pt.cex=1.2,xpd=NA,pch=1)
+
+## Phosphorus
+par(mar=c(0,7,4,1))
+
+with(eco[eco$Study=="boyero",],plot(rep(3,11)~P_annual,col=ecocol,cex=2,lwd=2,xlim=c(0,0.6),ylim=c(0,4),yaxt="n",xaxt="n",ylab=""))
+with(eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",],points(rep(1,11)~P_annual,col=ecocol,cex=2,lwd=2))
+axis(3)
+mtext(expression("Annual P flux (g P/m"^2*")"),3,line=2,cex=0.8)
+mtext(side=2,c("Immobilization","Litter input"),at=c(1,3),las=1,line=1,cex=0.8)
+text(-0.2,5,"B",xpd=T,cex=2.5)
+
+  #Draw segments for easier comparison
+leafsub <- rbind(eco[eco$Study=="boyero",],eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",])
+leafsub <- leafsub[complete.cases(leafsub[,'P_annual']),]
+leafsub$Biome <- factor(leafsub$Biome)
+blevel <- levels(leafsub$Biome)
+for(i in 1:length(blevel)){with(leafsub[leafsub$Biome==blevel[i],],points(c(3,1)~P_annual,col=ecocol,type="l"))}
+
+#Instantaneous flux panel
+par(mar=c(4,7,0,1))
+with(eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",],plot(rep(1,11)~P_instant,ylim=c(0,8),xlim=c(.1,100),log="x",col=ecocol,yaxt="n",ylab="",cex=2,lwd=2,xlab=expression("Instantaneous P flux (mg P/m"^2*"/d)"),xaxt="n"))
+logaxis(0,2,1)
+logaxis(-1,-.1,1)
+
+#Convert values from Ensign and Doyle 2006 from ug/m2/min to mg/m2/d
+PO4ensign <- c(0,6.2,13.7,34.6,1000)*1440/1000
+
+PO4bx=list(stats=data.matrix(PO4ensign),n=1)
+bxp(PO4bx,add=T,horizontal=T,at=3,xaxt="n",whisklty=0,staplelty=0)
+
+mtext(side=2,c("Immobilization",expression("PO"[4]* " uptake")),at=c(1,3),las=1,line=1,cex=0.8)
 
 ```
 

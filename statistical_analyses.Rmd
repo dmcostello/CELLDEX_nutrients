@@ -457,3 +457,43 @@ abline(residPr)
 
 ```
 
+## Ecosystem-scale flux calculations
+```{r}
+#Calculate geometric means for each biome
+
+#P immobilization rate
+exp(tapply(log(CNPk_STR$Pim),CNPk_STR$biome_short,mean,na.rm=T))
+
+#P T max
+exp(tapply(log(CNPk_STR$Ptmax),CNPk_STR$biome_short,mean,na.rm=T))
+
+#N immobilization rate
+exp(tapply(log(CNPk_STR$Nim),CNPk_STR$biome_short,mean,na.rm=T))
+
+#N T max
+exp(tapply(log(CNPk_STR$Ntmax),CNPk_STR$biome_short,mean,na.rm=T))
+
+#### Instantaneous rates ####
+
+#Calculated as product of immobilization rate x litter fall
+
+## EXAMPLE P instantaneous flux in a Montane grassland (Rio Mayo) ##
+#PIMM = 13.2 ug P/g C/d
+#Litter fall = 160 g/m2/yr
+#Assume litter mass is 42% C
+
+13.2 * (160 * 0.42)
+#Units are µg P/m^2/d but plotted as mg P/m^2/d
+
+
+#### Annual flux ####
+# Calculated as the product of immobilization rate x time immobilizing x litter fall
+
+## EXAMPLE P annual flux in a Montane grassland ##
+#P Tmax = 95 d
+
+13.2 * 95 * (160*0.42)
+#Units are µg P/m^2 but plotted as g/m^2
+
+```
+
