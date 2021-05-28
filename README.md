@@ -81,7 +81,11 @@ __`immob_eco.csv`__
 
 _Variable codes and notes_  
 part.str: alphabetic codes are the partner and numerical codes are the stream. Codes are defined in a database internal to the CELLDEX project.
+
 Type: STR = stream or river incubated; RIP = riparian incubated  
+
 Nim-NP_fac: Immobilization rates, factors, times, and ratios were calculated from strip concentrations using the code in `immob_calc.Rmd`
+
 immob_eco: Calculations for flux estimates are found in `statistical_analyses.Rmd`
+
 "NA" for immobilization = sample collected, but N or P mass did not increase
