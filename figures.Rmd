@@ -55,6 +55,7 @@ CNPk_STR <- subset(siteCNPk,Type=='STR')
 #Merge River with water quality
 WQ <- read.csv("waterquality.csv")
 CNPk_STR_WQ <- merge(CNPk_STR,WQ,by="part.str",all.x=T)
+
 ```
 
 
