@@ -19,7 +19,7 @@ ripCNP <- subset(stripCNP,Type=='RIP')
 strCNP <- subset(stripCNP,Type=='STR')
 
 #Aggregate to site-level data
-siteCNP <- aggregate(stripCNP[,c(7:17,19:28)],by=list(stripCNP$part.str,stripCNP$biome_short,stripCNP$Type),mean,na.rm=T)
+siteCNP <- aggregate(stripCNP[,c(5:24)],by=list(stripCNP$part.str,stripCNP$biome_short,stripCNP$Type),mean,na.rm=T)
 colnames(siteCNP)[1:3] <- c("part.str","biome_short","Type")
 
 #Merge with decomp rate
