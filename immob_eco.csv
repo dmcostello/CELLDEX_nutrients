@@ -1,6 +1,6 @@
 Study,Biome,Habitat,N_instant,N_annual,P_instant,P_annual
 CELLDEX,mont_grass,stream,11.2,0.64,0.89,0.08
-CELLDEX,desert,stream,9.5,0.5,1.65,0.12
+CELLDEX,desert,stream,9.3,0.49,1.61,0.12
 CELLDEX,tund,stream,0.8,0.07,0.13,0.01
 CELLDEX,taiga,stream,3.1,0.29,0.48,0.05
 CELLDEX,temp_conif,stream,23.6,1.64,2.22,0.19
@@ -11,7 +11,7 @@ CELLDEX,temp_grass,stream,5.8,0.26,0.94,0.05
 CELLDEX,trop_dry,stream,57.4,2.7,2.11,0.11
 CELLDEX,trop_wet,stream,30.4,1.09,3.65,0.17
 CELLDEX,mont_grass,riparian,1.5,0.18,0.21,0.02
-CELLDEX,desert,riparian,1,0.02,0.343,0.034
+CELLDEX,desert,riparian,0.9,0.02,0.336,0.033
 CELLDEX,tund,riparian,0.2,0.02,0.135,0.017
 CELLDEX,taiga,riparian,1.1,0.03,0.252,0.026
 CELLDEX,temp_conif,riparian,4.8,0.25,0.452,0.018
