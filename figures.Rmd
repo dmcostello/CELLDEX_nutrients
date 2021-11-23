@@ -437,14 +437,17 @@ with(eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",],plot(rep(1,11)~N_instant,y
 logaxis(0,3,1)
 logaxis(-1,-.1,1)
 
-#Convert values from Ensign and Doyle 2006 from ug/m2/min to mg/m2/d
-NO3ensign <- c(0,5.2,14.5,66.3,1000)*1440/1000
-NH4ensign <- c(0,2.2,5.1,10.4,1000)*1440/1000
+#Convert values (min,1Q,median,3Q,max) from Ensign and Doyle 2006 from ug/m2/min to mg/m2/d
+NO3ensign <- c(0,5.2,14.5,66.3,73860)*1440/1000
+NH4ensign <- c(0.4,6.9,28.4,63.2,4931)*1440/1000
 
-#Convert Marcarelli values from ug/m2/h to mg/m2/d
+#New data that adds LINX II data from Hall et al. 2009 to the Ensign and Doyle database.
+NO3ensignhall <- c(0,6.4,16.3,99.8,73860)*1440/1000
+
+#Convert Marcarelli values (min,1Q,median,3Q,max) from ug/m2/h to mg/m2/d
 Nfix <- c(0,4,9,410,1000)*24/1000
 
-NO3bx=list(stats=data.matrix(NO3ensign),n=1)
+NO3bx=list(stats=data.matrix(NO3ensignhall),n=1)
 bxp(NO3bx,add=T,horizontal=T,at=3,xaxt="n",whisklty=0,staplelty=0)
 
 NH4bx=list(stats=data.matrix(NH4ensign),n=1)
@@ -480,8 +483,8 @@ with(eco[eco$Study=="CELLDEX"&eco$Habitat=="stream",],plot(rep(1,11)~P_instant,y
 logaxis(0,2,1)
 logaxis(-1,-.1,1)
 
-#Convert values from Ensign and Doyle 2006 from ug/m2/min to mg/m2/d
-PO4ensign <- c(0,6.2,13.7,34.6,1000)*1440/1000
+#Convert values (min,1Q,median,3Q,max) from Ensign and Doyle 2006 from ug/m2/min to mg/m2/d
+PO4ensign <- c(NA,6.2,13.7,34.6,NA)*1440/1000
 
 PO4bx=list(stats=data.matrix(PO4ensign),n=1)
 bxp(PO4bx,add=T,horizontal=T,at=3,xaxt="n",whisklty=0,staplelty=0)
