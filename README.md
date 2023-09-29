@@ -88,4 +88,6 @@ Nim-NP_fac: Immobilization rates, factors, times, and ratios were calculated fro
 
 immob_eco: Calculations for flux estimates are found in `statistical_analyses.Rmd`
 
-"NA" for immobilization = sample collected, but N or P mass did not increase
+"NA" for immobilization = sample collected, but no mass loss
+
+0 for immobilization = sample collected, but N and P concentration did not increase
