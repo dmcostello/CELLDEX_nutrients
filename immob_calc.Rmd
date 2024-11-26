@@ -5,7 +5,7 @@ date: "5/24/2021"
 output: html_document
 ---
 
-Function used to calculate phosphorus immobilization rate, time of immobilization, and P factor. See Costello et al. 202X Supplemental Information for details of calculations. Default values are provided for initial P concentration, initial punch mass, and initial punch C mass, but they likely only apply to the CELLDEX cotton strips deployed in 2015 and the sampling methods described in the manuscript.
+Function used to calculate phosphorus immobilization rate, time of immobilization, and P factor. See Costello et al. 2022 (https://doi.org/10.1029/2021GB007163) and Supplemental Information for details of calculations. Default values are provided for initial P concentration, initial punch mass, and initial punch C mass, but they likely only apply to the CELLDEX cotton strips deployed in 2015 and the sampling methods described in the manuscript.
 
 ```{r function to calculate immobilization}
 Pimmob <- function(P.conc.ugg,C.mass,time=21,dd=NA,
